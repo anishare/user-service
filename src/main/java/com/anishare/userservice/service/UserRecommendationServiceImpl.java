@@ -44,17 +44,36 @@ public class UserRecommendationServiceImpl implements UserRecommendationService 
     @Override
     public Page<ResponseDTO<AnimeDTO>> findByFrom(String token, String from, Pageable pageable) {
         Page<UserRecommendationsDTO> items = userRecommendationsRepository.findByFromUser(from, pageable).map(userRecommendationMapper::entityToDTO);
+        return processResult(token, items);
+    }
+
+    @Override
+    public Page<ResponseDTO<AnimeDTO>> findByTo(String token, String to, Pageable pageable) {
+        Page<UserRecommendationsDTO> items = userRecommendationsRepository.findByToUser(to, pageable).map(userRecommendationMapper::entityToDTO);
+        return processResult(token, items);
+    }
+
+    @Override
+    public UserRecommendationsDTO add(UserRecommendationsDTO item) {
+        if (userRecommendationsRepository.existsByFromUserAndToUserAndItemID(item.getFromUser(), item.getToUser(), item.getItemID())) {
+            throw new IllegalStateException("You have already recommended this");
+        }
+        return userRecommendationMapper.entityToDTO(userRecommendationsRepository.save(userRecommendationMapper.dtoToEntity(item)));
+    }
+
+    @Override
+    public void changeStatus(UUID id, boolean status) {
+        userRecommendationsRepository.updateStatusByID(id, status);
+    }
+
+    @Override
+    public void delete(UUID id) {
+        userRecommendationsRepository.deleteById(id);
+    }
+
+    private Page<ResponseDTO<AnimeDTO>> processResult(String token, Page<UserRecommendationsDTO> items) {
         List<UUID> list = items.stream().map(UserRecommendationsDTO::getItemID).collect(Collectors.toList());
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.add("Authorization", "Bearer " + token);
-        HttpEntity<List<UUID>> entity = new HttpEntity<>(list, httpHeaders);
-        ResponseEntity<List<AnimeDTO>> exchange = restTemplate.exchange(
-                "http://ANIME-SERVICE/anime/findAllById",
-                HttpMethod.POST,
-                entity,
-                new ParameterizedTypeReference<>() {}
-        );
-        List<AnimeDTO> animeList = exchange.getBody();
+        List<AnimeDTO> animeList = getData(list, token, AnimeDTO.class);
         return  items.map(userRecommendationsDTO -> {
             ResponseDTO<AnimeDTO> temp = userRecommendationMapper.entityToResponseDTO(userRecommendationsDTO);
             temp.setItem(animeList.stream().filter(x -> x.getId().compareTo(userRecommendationsDTO.getItemID()) == 0).findFirst().orElse(null));
@@ -62,23 +81,22 @@ public class UserRecommendationServiceImpl implements UserRecommendationService 
         });
     }
 
-    @Override
-    public Page<ResponseDTO<AnimeDTO>> findByTo(String to, Pageable pageable) {
-        return null;
+    public HttpHeaders getHeaders(String token) {
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add("Authorization", "Bearer " + token);
+        return httpHeaders;
     }
 
-    @Override
-    public UserRecommendationsDTO add(UserRecommendationsDTO item) {
-        return null;
-    }
-
-    @Override
-    public void changeStatus(UUID id, boolean status) {
-
-    }
-
-    @Override
-    public void delete(UserRecommendationsDTO item) {
-
+    public <T> List<T> getData(List<UUID> list, String token, Class<T> tClass) {
+        HttpEntity<List<UUID>> entity = new HttpEntity<>(list, getHeaders(token));
+        String url = (tClass.getGenericSuperclass() instanceof AnimeDTO) ? "http://ANIME-SERVICE/anime/findAllById" :
+                "http://MANGA-SERVICE/manga/findAllById";
+        ResponseEntity<List<T>> exchange = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                entity,
+                new ParameterizedTypeReference<>() {}
+        );
+        return exchange.getBody();
     }
 }

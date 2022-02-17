@@ -11,8 +11,8 @@ import java.util.UUID;
 public interface UserRecommendationService {
     UserRecommendationsDTO findById(UUID uuid);
     Page<ResponseDTO<AnimeDTO>> findByFrom(String token, String from, Pageable pageable);
-    Page<ResponseDTO<AnimeDTO>> findByTo(String to, Pageable pageable);
+    Page<ResponseDTO<AnimeDTO>> findByTo(String token, String to, Pageable pageable);
     UserRecommendationsDTO add(UserRecommendationsDTO item);
     void changeStatus(UUID id, boolean status);
-    void delete(UserRecommendationsDTO item);
+    void delete(UUID id);
 }

@@ -11,8 +11,6 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.security.Principal;
-
 @RestController
 public class UserRecommendationController {
 
@@ -25,6 +23,6 @@ public class UserRecommendationController {
 
     @GetMapping
     public ResponseEntity<Page<ResponseDTO<AnimeDTO>>> getItems(JwtAuthenticationToken jwt, Pageable pageable) {
-        return ResponseEntity.ok(userRecommendationService.findByFrom(jwt.getToken().getTokenValue(), "1", pageable));
+        return ResponseEntity.ok(userRecommendationService.findByFrom(jwt.getToken().getTokenValue(), jwt.getName(), pageable));
     }
 }
