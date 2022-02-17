@@ -7,8 +7,6 @@ import com.anishare.userservice.mapper.UserRecommendationMapper;
 import com.anishare.userservice.repository.UserRecommendationsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -42,14 +40,14 @@ public class UserRecommendationServiceImpl implements UserRecommendationService 
     }
 
     @Override
-    public Page<ResponseDTO<AnimeDTO>> findByFrom(String token, String from, Pageable pageable) {
-        Page<UserRecommendationsDTO> items = userRecommendationsRepository.findByFromUser(from, pageable).map(userRecommendationMapper::entityToDTO);
+    public List<ResponseDTO> findByFrom(String token, String from) {
+        List<UserRecommendationsDTO> items = userRecommendationMapper.entityListToDTOList(userRecommendationsRepository.findByFromUser(from));
         return processResult(token, items);
     }
 
     @Override
-    public Page<ResponseDTO<AnimeDTO>> findByTo(String token, String to, Pageable pageable) {
-        Page<UserRecommendationsDTO> items = userRecommendationsRepository.findByToUser(to, pageable).map(userRecommendationMapper::entityToDTO);
+    public List<ResponseDTO> findByTo(String token, String to) {
+        List<UserRecommendationsDTO> items = userRecommendationMapper.entityListToDTOList(userRecommendationsRepository.findByToUser(to));
         return processResult(token, items);
     }
 
@@ -71,14 +69,14 @@ public class UserRecommendationServiceImpl implements UserRecommendationService 
         userRecommendationsRepository.deleteById(id);
     }
 
-    private Page<ResponseDTO<AnimeDTO>> processResult(String token, Page<UserRecommendationsDTO> items) {
+    private List<ResponseDTO> processResult(String token, List<UserRecommendationsDTO> items) {
         List<UUID> list = items.stream().map(UserRecommendationsDTO::getItemID).collect(Collectors.toList());
-        List<AnimeDTO> animeList = getData(list, token, AnimeDTO.class);
-        return  items.map(userRecommendationsDTO -> {
-            ResponseDTO<AnimeDTO> temp = userRecommendationMapper.entityToResponseDTO(userRecommendationsDTO);
+        List<AnimeDTO> animeList = getData(list, token);
+        return  items.stream().map(userRecommendationsDTO -> {
+            ResponseDTO temp = userRecommendationMapper.entityToResponseDTO(userRecommendationsDTO);
             temp.setItem(animeList.stream().filter(x -> x.getId().compareTo(userRecommendationsDTO.getItemID()) == 0).findFirst().orElse(null));
             return temp;
-        });
+        }).collect(Collectors.toList());
     }
 
     public HttpHeaders getHeaders(String token) {
@@ -87,12 +85,10 @@ public class UserRecommendationServiceImpl implements UserRecommendationService 
         return httpHeaders;
     }
 
-    public <T> List<T> getData(List<UUID> list, String token, Class<T> tClass) {
+    public List<AnimeDTO> getData(List<UUID> list, String token) {
         HttpEntity<List<UUID>> entity = new HttpEntity<>(list, getHeaders(token));
-        String url = (tClass.getGenericSuperclass() instanceof AnimeDTO) ? "http://ANIME-SERVICE/anime/findAllById" :
-                "http://MANGA-SERVICE/manga/findAllById";
-        ResponseEntity<List<T>> exchange = restTemplate.exchange(
-                url,
+        ResponseEntity<List<AnimeDTO>> exchange = restTemplate.exchange(
+                "http://ANIME-SERVICE/anime/findAllById",
                 HttpMethod.POST,
                 entity,
                 new ParameterizedTypeReference<>() {}

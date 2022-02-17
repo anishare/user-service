@@ -3,13 +3,13 @@ package com.anishare.userservice.dto;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public class ResponseDTO<T> {
+public class ResponseDTO {
 
     private UUID id;
     private String fromUser;
     private String toUser;
     private LocalDateTime dateCreated;
-    private T item;
+    private AnimeDTO item;
     private boolean isAnime;
     private boolean isFinished;
 
@@ -45,11 +45,11 @@ public class ResponseDTO<T> {
         this.dateCreated = dateCreated;
     }
 
-    public T getItem() {
+    public AnimeDTO getItem() {
         return item;
     }
 
-    public void setItem(T item) {
+    public void setItem(AnimeDTO item) {
         this.item = item;
     }
 
