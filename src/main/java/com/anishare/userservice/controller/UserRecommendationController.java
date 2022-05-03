@@ -46,6 +46,12 @@ public class UserRecommendationController {
         return ResponseEntity.ok(userRecommendationService.findById(id));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<Void> changeStatusById(@PathVariable UUID id, @RequestParam boolean status) {
+        userRecommendationService.changeStatus(id, status);
+        return ResponseEntity.accepted().build();
+    }
+
     @DeleteMapping("/{id}/delete")
     public ResponseEntity<Void> deleteById(@PathVariable UUID id) {
         userRecommendationService.delete(id);
